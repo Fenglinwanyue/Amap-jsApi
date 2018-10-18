@@ -29,8 +29,9 @@
             /* width: 10rem; */
             height: 50px;
             position: absolute;
-            top: 100px;
+            top: 20px;
             margin: auto;
+            padding-left: 10px;
             /* left: calc(50% - 325px); */
         }
 
@@ -48,7 +49,7 @@
             height: 50px;
             border: none;
             outline: none;
-            color: #fff;
+            color: #ff2d55;
             float: left;
         }
     </style>
@@ -57,8 +58,8 @@
 <body>
     <div id="container">
         <div class="search">
-            <input type="text" class="searchbox" id="tipinput" placeholder="请输入地址。。">
-            <input type="button" class="searchbutton" value="搜索">
+            <input type="text" class="searchbox" id="inputText" placeholder="请输入地址。。">
+            <input type="button" class="searchbutton" value="搜索" id="buttonClick">
         </div>
     </div>
     <script src="https://res.wx.qq.com/mmbizwap/zh_CN/htmledition/js/vconsole/2.5.1/vconsole.min.js"></script>
@@ -161,6 +162,12 @@
                         // panel: "panel"
                     });
                 });
+                // 按钮点击
+                var buttonClick = document.getElementById("buttonClick")
+                var inputText = document.getElementById("inputText").value;
+                buttonClick.onclick=function(){
+                    // 根据地址获取经纬度
+                }
             }
             var url = 'https://webapi.amap.com/maps?v=1.4.8&key=022986bf71b2d801932ab3bb85be5f7c&callback=NEW_AMAP';
             var jsapi = document.createElement('script');
