@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Amap-api</title>
+    <style type="text/css">
+        * {
+            margin: 0px;
+            padding: 0px;
+        }
+
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+        }
+
+        #container {
+            position: relative;
+            height: 100%;
+            width: 100%;
+        }
+
+        .search {
+            z-index: 100;
+            /* width: 10rem; */
+            height: 50px;
+            position: absolute;
+            top: 100px;
+            margin: auto;
+            /* left: calc(50% - 325px); */
+        }
+
+        .search .searchbox {
+            width: 10rem;
+            height: 50px;
+            border: none;
+            outline: none;
+            text-indent: 15px;
+            float: left;
+        }
+
+        .search .searchbutton {
+            width: 100px;
+            height: 50px;
+            border: none;
+            outline: none;
+            color: #fff;
+            float: left;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <div class="search">
+            <input type="text" class="searchbox" id="tipinput" placeholder="请输入地址。。">
+            <input type="button" class="searchbutton" value="搜索">
+        </div>
+    </div>
+    <script>
+        window.onload = function () {
+            var o2oviewportWidth = document.documentElement.clientWidth || window.screen.width
+            document.documentElement.style['font-size'] = o2oviewportWidth / 15 + 'px'
+            window["NEW_AMAP"] = function () {
+                var map = new AMap.Map('container', {
+                    center: [121.485972,31.247829],
+                    zoom: 18
+                });
+                // 初始标点
+                addMarker([121.485972,31.247829])
+                // 获取点击点的经纬度
+                map.on('click', function (ev) {
+                    // 触发事件的对象
+                    var target = ev.target;
+                    // 触发事件的地理坐标，AMap.LngLat 类型
+                    var lnglat = ev.lnglat;
+                    // 触发事件的像素坐标，AMap.Pixel 类型
+                    var pixel = ev.pixel;
+                    // 触发事件类型
+                    var type = ev.type;
+                    var text = '您在 [ ' + ev.lnglat.getLng() + ',' + ev.lnglat.getLat() + ' ] 的位置单击了地图！'
+                    console.log(text)
+                    var lnglatXY = [ev.lnglat.getLng(), ev.lnglat.getLat()]
+                    // addMarker(lnglatXY)
+                    writeAddress(lnglatXY)
+                })
+
+                // 经纬度解析为地址前奏
+                function writeAddress(lnglatXY) {
+                    geocoder.getAddress(lnglatXY, function (status, result) {
+                        if (status === 'complete' && result.info === 'OK') {
+                            geocoder_CallBack(result);
+                        }
+                    });
+                }
+
+                // 经纬度反编译为地址
+                function geocoder_CallBack(data) {
+                    var address = data.regeocode.formattedAddress; //返回地址描述
+                    console.log('点击区地理位置：' + address);
+                }
+
+
+                // 放大，缩小
+                AMap.plugin(['AMap.ToolBar', 'AMap.Geolocation'], function () {
+                    var toolbar = new AMap.ToolBar();
+                    var geolocation = new AMap.Geolocation();
+                    map.addControl(toolbar);
+                    map.addControl(geolocation);
+                });
+
+                // 标点
+
+                function addMarker(lnglatXY) {
+                    //console.log(lnglatXY);
+                    var marker = new AMap.Marker({
+                        icon: "http://webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
+                        position: lnglatXY,
+                        draggable: true
+                    });
+
+                    // 监听拖动marker
+                    AMap.event.addListener(marker, 'dragging', function (e) {
+                        var lat = e.lnglat.lat,
+                            lng = e.lnglat.lng;
+                        marker.setPosition(new AMap.LngLat(lng, lat));
+                        writeAddress([lng, lat])
+                        console.log('marker.setPosition' + lng + "-" + lat)
+                    })
+                    marker.setMap(map);
+                    // map.setFitView(); // 执行定位
+                }
+
+                // var marker = new AMap.Marker({
+                //     icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
+                //     // position: [117.000923, 36.675807],
+                //     map: map, // 立即标注到地图上
+                //     draggable: false // 不可拖动
+                // })
+                // map.add(marker)
+
+
+                // 正反向解析
+                AMap.service('AMap.Geocoder', function () {
+                    //实例化Geocoder
+                    geocoder = new AMap.Geocoder({
+                        city: "全国" //城市，默认：“全国”
+                    });
+                });
+                AMap.service(["AMap.PlaceSearch"], function () {
+                    placeSearch = new AMap.PlaceSearch({ //构造地点查询类
+                        pageSize: 5,
+                        pageIndex: 1,
+                        city: "全国", //城市
+                        map: map
+                        // panel: "panel"
+                    });
+                });
+            }
+            var url = 'https://webapi.amap.com/maps?v=1.4.8&key=022986bf71b2d801932ab3bb85be5f7c&callback=NEW_AMAP';
+            var jsapi = document.createElement('script');
+            jsapi.charset = 'utf-8';
+            jsapi.src = url;
+            document.head.appendChild(jsapi);
+        }
+    </script>
+</body>
+
+</html>
