@@ -52,28 +52,57 @@
             color: #ff2d55;
             float: left;
         }
+
+        /* 去除高德logo */
+
+        .amap-logo {
+            display: none !important;
+        }
+
+        /* 去除版本号 */
+
+        .amap-copyright {
+            opacity: 0 !important;
+        }
+
+        /* label标签样式修改 */
+
+        .amap-marker-label {
+            border: 0;
+            /* background-color: transparent; */
+            background-color: #fff;
+        }
+
+        .info {
+            position: relative;
+            top: 0;
+            right: 0;
+            min-width: 6rem;
+            max-width: 12rem;
+            white-space: normal;
+        }
     </style>
 </head>
 
 <body>
     <div id="container">
         <div class="search">
-            <input type="text" class="searchbox" id="inputText" placeholder="请输入地址。。">
+            <input type="text" class="searchbox" id="inputText" placeholder="请输入地址">
             <input type="button" class="searchbutton" value="搜索" id="buttonClick">
         </div>
     </div>
-    <script src="https://res.wx.qq.com/mmbizwap/zh_CN/htmledition/js/vconsole/2.5.1/vconsole.min.js"></script>
+    <!-- <script src="https://res.wx.qq.com/mmbizwap/zh_CN/htmledition/js/vconsole/2.5.1/vconsole.min.js"></script> -->
     <script>
         window.onload = function () {
             var o2oviewportWidth = document.documentElement.clientWidth || window.screen.width
             document.documentElement.style['font-size'] = o2oviewportWidth / 15 + 'px'
             window["NEW_AMAP"] = function () {
-                var map = new AMap.Map('container', {
-                    center: [121.485972,31.247829],
+                var marker, map = new AMap.Map('container', {
+                    center: [121.485972, 31.247829],
                     zoom: 18
                 });
                 // 初始标点
-                addMarker([121.485972,31.247829])
+                addMarker([121.485972, 31.247829])
                 // 获取点击点的经纬度
                 map.on('click', function (ev) {
                     // 触发事件的对象
@@ -87,11 +116,29 @@
                     var text = '您在 [ ' + ev.lnglat.getLng() + ',' + ev.lnglat.getLat() + ' ] 的位置单击了地图！'
                     console.log(text)
                     var lnglatXY = [ev.lnglat.getLng(), ev.lnglat.getLat()]
-                    // addMarker(lnglatXY)
+                    clearMarker()
+                    addMarker(lnglatXY)
                     writeAddress(lnglatXY)
                 })
 
-                // 经纬度解析为地址前奏
+                // 清除 marker
+                function clearMarker() {
+
+                    if (marker) {
+                        marker.setMap(null);
+                        marker = null;
+                    }
+                }
+
+                // 地理编码（地址 <-> 坐标）
+                AMap.service('AMap.Geocoder', function () {
+                    //实例化Geocoder
+                    geocoder = new AMap.Geocoder({
+                        city: "全国" //城市，默认：“全国”
+                    });
+                });
+
+                // 经纬度解析为地址前奏（坐标 -> 地址）
                 function writeAddress(lnglatXY) {
                     geocoder.getAddress(lnglatXY, function (status, result) {
                         if (status === 'complete' && result.info === 'OK') {
@@ -100,12 +147,43 @@
                     });
                 }
 
-                // 经纬度反编译为地址
+                // 经纬度解析为地址（坐标 -> 地址）
                 function geocoder_CallBack(data) {
                     var address = data.regeocode.formattedAddress; //返回地址描述
                     console.log('点击区地理位置：' + address);
+                    marker.setLabel({
+                        //修改label相对于maker的位置
+                        offset: new AMap.Pixel(20, 20),
+                        content: "<div class='info'>" + address + "</div>"
+                    });
                 }
 
+                //（地址 -> 坐标）标点
+                function writeLngLat(address) {
+                    geocoder.getLocation(address, function (status, result) {
+                        if (status === 'complete' && result.geocodes.length) {
+                            var lnglat = result.geocodes[0].location
+                            // document.getElementById('lnglat').value = lnglat;
+                            console.log('地址 -> 坐标:' + lnglat)
+                            if (!marker) {
+                                marker = new AMap.Marker();
+                                map.add(marker);
+                            }
+                            clearMarker()
+                            addMarker(lnglat)
+                            marker.setLabel({
+                                //修改label相对于maker的位置
+                                offset: new AMap.Pixel(20, 20),
+                                content: "<div class='info'>" + address + "</div>"
+                            });
+                            // marker.setPosition(lnglat);
+                            // map.setFitView(marker);
+                        } else {
+                            alert("未搜索到该地区")
+                            console.log(JSON.stringify(result))
+                        }
+                    });
+                }
 
                 // 放大，缩小
                 AMap.plugin(['AMap.ToolBar', 'AMap.Geolocation'], function () {
@@ -119,10 +197,15 @@
 
                 function addMarker(lnglatXY) {
                     //console.log(lnglatXY);
-                    var marker = new AMap.Marker({
+                    marker = new AMap.Marker({
                         icon: "http://webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
                         position: lnglatXY,
-                        draggable: true
+                        draggable: true,
+                        // 设置拖拽效果 【拖动时图标在上，落下有回弹效果】
+                        raiseOnDrag: true,
+                        autoFitView: true,
+                        // 设置了 icon 以后，设置 icon 的偏移量，以 icon 的 [center bottom] 为原点
+                        offset: new AMap.Pixel(-9.5, -31) // marker偏移值
                     });
 
                     // 监听拖动marker
@@ -134,39 +217,47 @@
                         console.log('marker.setPosition' + lng + "-" + lat)
                     })
                     marker.setMap(map);
-                    // map.setFitView(); // 执行定位
+                    // 设置鼠标划过点标记显示的文字提示
+                    // marker.setTitle('可拖动选择位置'); // 没有实际效果
+
+                    // 设置label标签
+                    // label默认蓝框白底左上角显示，样式className为：amap-marker-label
+                    // marker.setLabel({
+                    //     //修改label相对于maker的位置
+                    //     offset: new AMap.Pixel(20, 20),
+                    //     content: "<div class='info'>我是 marker 的 label 标签</div>"
+                    // });
+
+                    // 设置点标记的动画效果，此处为弹跳效果
+                    // marker.setAnimation('AMAP_ANIMATION_BOUNCE');
+                    map.setFitView(); // 执行定位
                 }
 
-                // var marker = new AMap.Marker({
-                //     icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
-                //     // position: [117.000923, 36.675807],
-                //     map: map, // 立即标注到地图上
-                //     draggable: false // 不可拖动
-                // })
-                // map.add(marker)
-
-
-                // 正反向解析
-                AMap.service('AMap.Geocoder', function () {
-                    //实例化Geocoder
-                    geocoder = new AMap.Geocoder({
-                        city: "全国" //城市，默认：“全国”
-                    });
-                });
                 AMap.service(["AMap.PlaceSearch"], function () {
                     placeSearch = new AMap.PlaceSearch({ //构造地点查询类
-                        pageSize: 5,
-                        pageIndex: 1,
-                        city: "全国", //城市
-                        map: map
+                        pageSize: 5, // 单页显示结果条数
+                        pageIndex: 1, // 页码
+                        city: "全国", // 默认全国
+                        // city: "010", // 兴趣点城市
+                        // citylimit: true, //是否强制限制在设置的城市内搜索
+                        map: map, // 展现结果的地图实例
+                        // panel: "panel", // 结果列表将在此容器中进行展示。
+                        autoFitView: true // 是否自动调整地图视野使绘制的 Marker点都处于视口的可见范围
                         // panel: "panel"
                     });
                 });
                 // 按钮点击
                 var buttonClick = document.getElementById("buttonClick")
-                var inputText = document.getElementById("inputText").value;
-                buttonClick.onclick=function(){
+                buttonClick.onclick = function () {
                     // 根据地址获取经纬度
+                    var inputText = document.getElementById("inputText").value;
+                    if (!inputText) {
+                        return
+                    }
+                    console.log(inputText)
+                    writeLngLat(inputText)
+                    // 搜索  不太符合业务
+                    // placeSearch.search(inputText)
                 }
             }
             var url = 'https://webapi.amap.com/maps?v=1.4.8&key=022986bf71b2d801932ab3bb85be5f7c&callback=NEW_AMAP';
