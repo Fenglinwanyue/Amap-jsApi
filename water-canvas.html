@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        html,
+        body {
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        // 正弦曲线公式：y = A sin(Bx + C) + D
+        // A 控制振幅，A 值越大，波峰和波谷越大，A 值越小，波峰和波谷越小；// 振幅是 A，A 值越大，曲线更陡峭
+        // B 值会影响周期，B 值越大，那么周期越短，B 值越小，周期越长。// 周期是 2π/B，B 值大于 1 时，B 值越大，周期越短，B 值小于 1 大于 0 时，周期变长
+        // C 值会影响图像左右移动，C 值为正数，图像右移，C 值为负数，图像左移。 // 相移是 −C/B，在 B 不变的情况，C 为正值时，曲线向左移动，C 为负值时，曲线向右移动：
+        // D 值控制上下移动。// 垂直位移是 D，控制曲线上下移动：
+        window.onload = function () {
+            'use strict';
+            const canvas = {
+                init() {
+                    this.ele = document.createElement('canvas');
+                    document.body.appendChild(this.ele);
+                    this.ele.style.width = window.innerWidth + 'px';
+                    this.ele.style.height = window.innerHeight + 'px';
+                    this.ele.width = window.innerWidth;
+                    this.ele.height = window.innerHeight;
+                    // this.ele.style.background = '#f1513b';
+                    const ctx = this.ele.getContext('2d');
+                    // return ctx;
+                    // this.drawSin(ctx);
+                    this.xOffset = 0; // 初始偏移
+                    this.speed = 0.1; // 偏移速度
+
+                    // 水位数值
+                    this.rangeValue = 0.7;
+                    // 初始水位
+                    this.nowRange = 0;
+                    requestAnimationFrame(this.draw.bind(this, this.ele));
+                },
+                draw() {
+                    const canvas = this.ele;
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    if (!this.isDrawCircle) {
+                        this.drawCircle(ctx);
+                    }
+                    if (this.nowRange < this.rangeValue) {
+                        this.nowRange += 0.01;
+                    }
+                    // 曲线绘制
+                    this.drawSin(ctx, 8, this.xOffset + 10, 0.08, this.nowRange, "#ff2d55");
+                    this.drawSin(ctx, 5, this.xOffset + 25, 0.000, this.nowRange, "#ff2d44");
+                    // this.xOffset += this.speed;
+                    requestAnimationFrame(this.draw.bind(this));
+                },
+                drawCircle(ctx) {
+                    const cirX = window.innerWidth / 2;
+                    const cirY = window.innerHeight / 2;
+                    const lineWidth = 5;
+                    const cirR = cirX - lineWidth;
+                    ctx.beginPath();
+                    ctx.arc(cirX, cirY, cirR, 0, 2 * Math.PI);
+                    ctx.stroke();
+                    ctx.clip(); // 只显示此圆区域
+                    this.isDrawCircle = true;
+                },
+                drawSin(ctx, wheight, xOffset, speed, nowRange, color) {
+                    const points = [];
+                    console.log(ctx)
+                    const canvasWidth = window.innerWidth;
+                    const canvasHeight = window.innerHeight;
+                    const startX = 0;
+                    const waveHeight = wheight; // 波浪高度,数越大越高
+                    const waveWidth = 0.05; // 波浪宽度,数越小越宽
+                    // const xOffset = 0; // 水平位移
+
+                    ctx.beginPath();
+                    for (let x = startX; x < startX + canvasWidth; x += 20 / canvasWidth) {
+                        const y = waveHeight * Math.sin((startX + x) * waveWidth + xOffset);
+                        // points.push([x, (canvasHeight / 2) + y]);
+                        // ctx.lineTo(x, (canvasHeight / 2) + y);
+                        points.push([x, ((1 - nowRange) * canvasHeight) + y]);
+                        ctx.lineTo(x, ((1 - nowRange) * canvasHeight) + y);
+                    }
+                    ctx.lineTo(canvasWidth, canvasHeight);
+                    console.log('current startX:' + startX)
+                    ctx.lineTo(startX, canvasHeight);
+                    // ctx.lineTo(points[0][0], points[0][1]);
+                    ctx.lineTo(0, points[0][1])
+                    ctx.stroke();
+
+                    // 修改填充色
+                    const radius = canvasWidth / 2
+                    const grd = ctx.createLinearGradient(radius, radius, radius, canvasHeight);
+                    grd.addColorStop(0, '#F39C6B');
+                    grd.addColorStop(1, '#A0563B');
+
+                    ctx.fillStyle = grd;
+                    ctx.fill();
+                    // 修改偏移速度
+                    this.xOffset += speed;
+                }
+            }
+            canvas.init();
+        }
+    </script>
+</body>
+
+</html>
